@@ -8,6 +8,8 @@ public class Worker {
 
     private String text;
 
+    private int wordCount;
+
     
 
 }

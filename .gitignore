@@ -191,5 +191,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+.gitattributes
 
 # End of https://www.gitignore.io/api/macos,windows,intellij,intellij+iml,intellij+all

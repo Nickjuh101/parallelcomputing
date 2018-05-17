@@ -1,5 +1,10 @@
 package serialsolution;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Scanner;
 
 /**
@@ -15,9 +20,12 @@ public class Main {
     public static void main(String[] args) {
         Scanner scan = new Scanner(System.in);
 
-        /* Ask for a text */
-        System.out.println("Please enter a text you want to find a word in: ");
-        text = scan.nextLine();
+        try {
+            text = readFile("C:\\Users\\Nick\\IdeaProjects\\parallelcomputing\\src\\text.txt", StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
 
         /* Remove punctuation from the text, except of punctuation that is useful for certain words.
          * Examples of these words are don't or re-enter */
@@ -42,6 +50,11 @@ public class Main {
         /* Print the useful lines of the algorithm */
         System.out.println("The total word count in the text is: " + totalWordCount);
         System.out.println("The word " + findWord + " appears " + wordsInText + " times in the given text");
+    }
+
+    private static String readFile(String path, Charset encoding) throws IOException {
+        byte[] encoded = Files.readAllBytes(Paths.get(path));
+        return new String(encoded, encoding);
     }
 
 }

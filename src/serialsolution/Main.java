@@ -30,7 +30,7 @@ public class Main {
         /* Ask for a word to find in the text */
         System.out.println("Please enter the word you want to count in the text: ");
         findWord = scan.nextLine();
-        
+
         /* Count total words in the text, count the amount of times the given word is in the text */
         for (String element : text.split(" ")){
             totalWordCount++;

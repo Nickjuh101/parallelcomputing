@@ -70,9 +70,8 @@ public class Worker {
     public void main() throws IOException {
         System.out.println("Starting...");
         long start = System.currentTimeMillis();
-        processFile("src/text.txt");
+        processFile("src/testText.txt");
 
-        System.out.println(count);
 
         Scanner findword = new Scanner(System.in);
     }
@@ -94,14 +93,42 @@ public class Worker {
 
             text = text.replace("\\n", "").replace("\\r", "");
 
-            count += countWords(text);
-//            Pattern p = Pattern.compile("\\b.{1," + (50 - 1) + "}\\b\\W?");
-//            Matcher m = p.matcher(text);
+            Pattern p = Pattern.compile("\\b.{1," + (50 - 1) + "}\\b\\W?");
+            Matcher m = p.matcher(text);
+
+            boolean allowListAcces = true;
+            if (allowListAcces == true){
+                while(m.find()){
+                    if (results.size() <= 10){
+                        results.add(m.group());
+                    } else {
+                        allowListAcces = false;
+                    }
+                }
+            }
+
+
+
+
+
+//            while (allowListAcces == true) {
+//                if (m.find() && results.size() <= 10){
+//                    m.group().trim();
+//                    results.add(m.group());
+//                } else {
+//                    allowListAcces = false;
+//                }
 //
-//            while (m.find()) {
-//                m.group().trim();
-//                results.add(m.group());
+//                for (int i = 0; i < results.size(); i++){
+//                    System.out.println(results.get(i));
+//                }
+//
 //            }
+
+
+
+//            count += countWords(text);
+
         }
     }
 

@@ -1,79 +1,40 @@
 package parallelsolution;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
+
 
 /**
  * Created by Nick on 0016 16 mei 2018.
  */
 public class Worker {
 
-    private Object lock1 = new Object();
-    private Object lock2 = new Object();
-    private Object lock3 = new Object();
-
     private static int wordsInText = 0;
-    private static int totalWordCount = 0;
     private static String findWord;
-    private static String text;
+    private static String textLine;
     private static List<String> results = new ArrayList<String>();
-    private static int count = 0;
+    private static volatile int count = 0;
 
-
-    public void stageOne() {
-        synchronized (lock1) {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public void stageTwo() {
-        synchronized (lock2) {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public void stageThree() {
-        synchronized (lock3) {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public void process() {
-        stageOne();
-        stageTwo();
-        stageThree();
+    public static synchronized void increment() {
+        count++;
     }
 
     public void main() throws IOException {
         System.out.println("Starting...");
         long start = System.currentTimeMillis();
-        processFile("src/testText.txt");
 
+        System.out.println("Enter the word you want to find: ");
+        Scanner scan = new Scanner(System.in);
+        findWord = scan.nextLine();
 
-        Scanner findword = new Scanner(System.in);
+        processFile("src/text.txt");
+
+        System.out.println("The word " + findWord + " appears " + wordsInText + " times in the given text");
+
     }
 
     private static void processFile(String fileName) throws IOException {
@@ -81,55 +42,69 @@ public class Worker {
         FileReader file = new FileReader(fileName);
         BufferedReader br = new BufferedReader(file);
 
-        String text = "";
-        while ((text = br.readLine()) != null) {
+        while ((textLine = br.readLine()) != null) {
+
+            if (textLine.isEmpty()) {
+                continue;
+            }
+
            /* Remove punctuation from the text, except of punctuation that is useful for certain words.
          * Examples of these words are don't or re-enter */
-            text = text.replaceAll("[[\\W]&&[^']&&[^-]]", " ");
+            textLine = textLine.replaceAll("[[\\W]&&[^']&&[^-]]", " ");
 
         /* Replace all double whitespaces with single whitespaces.
          * We will split the text on these whitespaces later */
-            text = text.replaceAll("\\s\\s+", " ");
+            textLine = textLine.replaceAll("\\s\\s+", " ");
 
-            text = text.replace("\\n", "").replace("\\r", "");
+            textLine = textLine.replaceAll("\\n", "").replaceAll("\\r", "");
 
-            Pattern p = Pattern.compile("\\b.{1," + (50 - 1) + "}\\b\\W?");
-            Matcher m = p.matcher(text);
-
-            boolean allowListAcces = true;
-            if (allowListAcces == true){
-                while(m.find()){
-                    if (results.size() <= 10){
-                        results.add(m.group());
-                    } else {
-                        allowListAcces = false;
+            if (results.isEmpty()) {
+                results.add(textLine);
+            }
+            if (results.size() <= 10) {
+                results.add(textLine);
+            } else {
+                wordsInText = (countWithThreads(results));
+                results.clear();
+            }
+        }
+    }
+    public static int countWithThreads(List<String> list) {
+        Thread t1 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < list.size() / 2; i++) {
+                    for (String element : list.get(i).split(" ")) {
+                        if (element.equalsIgnoreCase(findWord)) {
+                            increment();
+                        }
                     }
                 }
             }
+        });
+        Thread t2 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = list.size() / 2; i < list.size(); i++) {
+                    for (String element : list.get(i).split(" ")) {
+                        if (element.equalsIgnoreCase(findWord)) {
+                            increment();
+                        }
+                    }
+                }
+            }
+        });
 
+        t1.start();
+        t2.start();
 
-
-
-
-//            while (allowListAcces == true) {
-//                if (m.find() && results.size() <= 10){
-//                    m.group().trim();
-//                    results.add(m.group());
-//                } else {
-//                    allowListAcces = false;
-//                }
-//
-//                for (int i = 0; i < results.size(); i++){
-//                    System.out.println(results.get(i));
-//                }
-//
-//            }
-
-
-
-//            count += countWords(text);
-
+        try {
+            t1.join();
+            t2.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+        return count;
     }
 
 
@@ -159,42 +134,4 @@ public class Worker {
         return wordCount;
 
     }
-
-
-//        Thread t1 = new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                process();
-//            }
-//        });
-//        Thread t2 = new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                process();
-//            }
-//        });
-//        Thread t3 = new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                process();
-//            }
-//        });
-//
-//        t1.start();
-//        t2.start();
-//        t3.start();
-//
-//        try {
-//            t1.join();
-//            t2.join();
-//            t3.join();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//
-//        long end = System.currentTimeMillis();
-//
-//        System.out.println("Time take: " + (end - start));
-
-
 }

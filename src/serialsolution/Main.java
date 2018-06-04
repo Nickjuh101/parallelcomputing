@@ -30,6 +30,12 @@ public class Main {
         findWord = findword.nextLine();
 
         while ((text = br.readLine()) != null) {
+
+            if (text.isEmpty()) {
+                continue;
+            }
+
+
         /* Remove punctuation from the text, except of punctuation that is useful for certain words.
          * Examples of these words are don't or re-enter */
             text = text.replaceAll("[[\\W]&&[^']&&[^-]]", " ");
@@ -37,6 +43,8 @@ public class Main {
         /* Replace all double whitespaces with single whitespaces.
          * We will split the text on these whitespaces later */
             text = text.replaceAll("\\s\\s+", " ");
+
+            text = text.replaceAll("\\n", "").replaceAll("\\r", "");
 
             /* Count total words in the text, count the amount of times the given word is in the text */
             for (String element : text.split(" ")) {

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.*;
 
 
 /**
@@ -16,6 +17,8 @@ public class Worker {
     private static int wordsInText = 0;
     private static String findWord;
     private static String textLine;
+    private static final int SIZE = 12000;
+    private static final int CORE = 4;
     private static List<String> results = new ArrayList<String>();
     private static volatile int count = 0;
 
@@ -31,7 +34,7 @@ public class Worker {
         Scanner scan = new Scanner(System.in);
         findWord = scan.nextLine();
 
-        processFile("src/text.txt");
+        processFile("src/testText.txt");
 
         System.out.println("The word " + findWord + " appears " + wordsInText + " times in the given text");
 
@@ -63,12 +66,44 @@ public class Worker {
             }
             if (results.size() <= 10) {
                 results.add(textLine);
-            } else {
                 wordsInText = (countWithThreads(results));
                 results.clear();
             }
         }
     }
+
+    public static void createThreadPool(){
+        ExecutorService executorService = Executors.newFixedThreadPool(CORE);
+
+        ArrayList<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
+
+        for (int i = 0; i < SIZE; i++){
+
+        }
+
+        for (Future<Integer> result : futureResults)
+            try
+            {
+                count += result.get();
+            }
+            catch (ExecutionException e)
+            {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        Future<Integer> future = executorService.submit(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                return null;
+            }
+        });
+
+
+    }
+
+
     public static int countWithThreads(List<String> list) {
         Thread t1 = new Thread(new Runnable() {
             @Override
@@ -96,11 +131,11 @@ public class Worker {
         });
 
         t1.start();
-        t2.start();
+//        t2.start();
 
         try {
             t1.join();
-            t2.join();
+//            t2.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

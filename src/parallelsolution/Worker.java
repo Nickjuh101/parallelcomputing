@@ -113,6 +113,8 @@ public class Worker {
             }
         }));
 
+        executorService.shutdown();
+
         for (Future<Integer> result : futureResults)
             try {
                 wordsInText += result.get();

@@ -20,6 +20,8 @@ public class Worker {
     private static List<String> results = new ArrayList<String>();
     private static volatile int count = 0;
 
+    private static List<String> subList = null;
+
     private static final int SIZE = 12000;
     private static final int CORE = 4;
 
@@ -35,7 +37,7 @@ public class Worker {
         Scanner scan = new Scanner(System.in);
         findWord = scan.nextLine();
 
-        processFile("src/text.txt");
+        processFile("src/testText.txt");
 
         System.out.println("The word " + findWord + " appears " + wordsInText + " times in the given text");
 
@@ -69,8 +71,9 @@ public class Worker {
             }
             if (results.size() <= SIZE) {
                 results.add(textLine);
-                if(results.size() == SIZE){
-                    wordsInText = (countWithThreads(results));
+                if (results.size() == SIZE) {
+//                    wordsInText = (countWithThreads(results));
+                    createThreadPool(results);
                     results.clear();
                 }
 //                    createThreadPool(results);
@@ -79,11 +82,10 @@ public class Worker {
         /* Count the remaining words in the list
         *  (last lines of the file do perhaps not fill up until the given SIZE, therefore need to be counted here)
         * */
-        wordsInText = countWithThreads(results);
+//        wordsInText = countWithThreads(results);
+        createThreadPool(results);
         results.clear();
-
     }
-
 
 
     public static void createThreadPool(List<String> list) {
@@ -92,46 +94,33 @@ public class Worker {
         int size = (int) Math.ceil(list.size() / CORE);
         for (int start = 0; start < list.size(); start += size) {
             int end = Math.min(start + size, list.size());
-            List<String> subList = list.subList(start, end);
-            System.out.println(subList);
+            subList = list.subList(start, end);
         }
 
+        List<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
+        futureResults.add(executorService.submit(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                int count = 0;
+                for (int i = 0; i < subList.size(); i++) {
+                    for (String element : subList.get(i).split(" ")) {
+                        if (element.equalsIgnoreCase(findWord)) {
+                            count++;
+                        }
+                    }
+                }
+                return count;
+            }
+        }));
 
-//        List<List<String>> parts = new ArrayList<>(CORE);
-//        for (int i = 0; i < CORE; ++i) {
-//            parts.add(new ArrayList<>());
-//        }
-//        final int N = list.size();
-//        for (int i = 0; i < N; ++i) {
-//            parts.get(i % CORE).add(list.get(i));
-//        }
-//
-//        System.out.println(parts);
-
-
-//        List<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
-//
-//        futureResults.add(executorService.submit(new Callable<Integer>() {
-//            @Override
-//            public Integer call() throws Exception {
-//                return null;
-//            }
-//        }));
-
-
-//        for (Future<Integer> result : futureResults)
-//            try
-//            {
-//                count += result.get();
-//            }
-//            catch (ExecutionException e)
-//            {
-//                e.printStackTrace();
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-
-
+        for (Future<Integer> result : futureResults)
+            try {
+                wordsInText += result.get();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
     }
 
 

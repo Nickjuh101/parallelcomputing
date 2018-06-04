@@ -21,7 +21,7 @@ public class Main {
 
         long startTime = System.currentTimeMillis();
 
-        FileReader file = new FileReader("src/testText.txt");
+        FileReader file = new FileReader("src/text.txt");
         BufferedReader br = new BufferedReader(file);
 
 
@@ -34,7 +34,6 @@ public class Main {
             if (text.isEmpty()) {
                 continue;
             }
-
 
         /* Remove punctuation from the text, except of punctuation that is useful for certain words.
          * Examples of these words are don't or re-enter */

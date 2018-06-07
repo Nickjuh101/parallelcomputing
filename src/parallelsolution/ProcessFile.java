@@ -1,7 +1,5 @@
 package parallelsolution;
 
-import jdk.nashorn.internal.codegen.CompilerConstants;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -14,7 +12,7 @@ import java.util.concurrent.*;
 /**
  * Created by Nick on 0016 16 mei 2018.
  */
-public class Worker {
+public class ProcessFile {
 
     private static int wordsInText = 0;
     private static String findWord;
@@ -22,29 +20,25 @@ public class Worker {
     private static List<String> results = new ArrayList<String>();
     private static volatile int count = 0;
 
-    private static List<String> subList = null;
-
     private static final int SIZE = 12000;
     private static final int CORE = 4;
 
     private static ExecutorService executorService = Executors.newFixedThreadPool(CORE);
 
-    public static synchronized void increment() {
-        count++;
-    }
-
     public void main() throws IOException {
-        System.out.println("Starting...");
-        long start = System.currentTimeMillis();
-
         System.out.println("Enter the word you want to find: ");
         Scanner scan = new Scanner(System.in);
         findWord = scan.nextLine();
 
-        processFile("src/testText.txt");
+        System.out.println("Starting...");
+        long startTime = System.currentTimeMillis();
+        processFile("src/text.txt");
+
+        long stopTime = System.currentTimeMillis();
 
         System.out.println("The word " + findWord + " appears " + wordsInText + " times in the given text");
 
+        System.out.println("Elapsed time was " + (stopTime - startTime) + " milliseconds.");
     }
 
     private static void processFile(String fileName) throws IOException {
@@ -57,7 +51,6 @@ public class Worker {
             if (textLine.isEmpty()) {
                 continue;
             }
-            int counter;
 
            /* Remove punctuation from the text, except of punctuation that is useful for certain words.
          * Examples of these words are don't or re-enter */
@@ -76,29 +69,30 @@ public class Worker {
             if (results.size() <= SIZE) {
                 results.add(textLine);
                 if (results.size() == SIZE) {
-//                    wordsInText = (countWithThreads(results));
                     createThreadPool(results);
                     results.clear();
                 }
-//                    createThreadPool(results);
             }
         }
         /* Count the remaining words in the list
         *  (last lines of the file do perhaps not fill up until the given SIZE, therefore need to be counted here)
-        * */
-//        wordsInText = countWithThreads(results);
+        *  Fill the list with empty items if the size of the list does not match with the given SIZE */
+        while(results.size() != SIZE){
+            results.add("");
+        }
         createThreadPool(results);
         executorService.shutdown();
         results.clear();
     }
 
-    public static class SplitWorker implements Callable<Integer> {
+    /* SplitWorker class that */
+    public static class Worker implements Callable<Integer> {
 
-        private List<String> splitWorkList;
+        private List<String> workerList;
         private int id;
 
-        SplitWorker(List<String> list, int id){
-            this.splitWorkList = list;
+        Worker(List<String> list, int id){
+            this.workerList = list;
             this.id = id;
         }
 
@@ -106,29 +100,25 @@ public class Worker {
         public Integer call() throws Exception {
             int count = 0;
             for (int i = id * SIZE / CORE; i < (id + 1) * SIZE / CORE; i++) {
-                if(splitWorkList.get(i) != null){
-                    for (String element : splitWorkList.get(i).split(" ")) {
+                    for (String element : workerList.get(i).split(" ")) {
                         if (element.equalsIgnoreCase(findWord)) {
                             count++;
                         }
                     }
-                } else {
-                    return 0;
-                }
-
             }
             return count;
         }
     }
 
     public static void createThreadPool(List<String> list) {
-
         List<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
 
+        /* Create CORE-amount of running threads in the Threadpool */
         for (int i = 0; i < CORE; i++) {
-            futureResults.add(executorService.submit(new SplitWorker(list, i)));
+            futureResults.add(executorService.submit(new Worker(list, i)));
         }
 
+        /* Get the result of the running threads */
         for (Future<Integer> result : futureResults){
             try {
                 wordsInText += result.get();
@@ -136,49 +126,10 @@ public class Worker {
                 e.printStackTrace();
             }
         }
-
     }
 
-
-    public static int countWithThreads(List<String> list) {
-        Thread t1 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < list.size() / 2; i++) {
-                    for (String element : list.get(i).split(" ")) {
-                        if (element.equalsIgnoreCase(findWord)) {
-                            increment();
-                        }
-                    }
-                }
-            }
-        });
-        Thread t2 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = list.size() / 2; i < list.size(); i++) {
-                    for (String element : list.get(i).split(" ")) {
-                        if (element.equalsIgnoreCase(findWord)) {
-                            increment();
-                        }
-                    }
-                }
-            }
-        });
-
-        t1.start();
-        t2.start();
-
-        try {
-            t1.join();
-            t2.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return count;
-    }
-
-
+    /* Saved for possible later use
+    * Counts the total words in a given string */
     public static int countWords(String s) {
 
         int wordCount = 0;

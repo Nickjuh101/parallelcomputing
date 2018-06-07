@@ -19,8 +19,6 @@ public class Main {
 //        Scanner scan = new Scanner(new File("src/text.txt"));
         Scanner findword = new Scanner(System.in);
 
-        long startTime = System.currentTimeMillis();
-
         FileReader file = new FileReader("src/text.txt");
         BufferedReader br = new BufferedReader(file);
 
@@ -29,8 +27,9 @@ public class Main {
         System.out.println("Please enter the word you want to count in the text: ");
         findWord = findword.nextLine();
 
-        while ((text = br.readLine()) != null) {
+        long startTime = System.currentTimeMillis();
 
+        while ((text = br.readLine()) != null) {
             if (text.isEmpty()) {
                 continue;
             }

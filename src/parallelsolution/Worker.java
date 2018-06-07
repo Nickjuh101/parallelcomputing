@@ -1,5 +1,7 @@
 package parallelsolution;
 
+import jdk.nashorn.internal.codegen.CompilerConstants;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -24,6 +26,8 @@ public class Worker {
 
     private static final int SIZE = 12000;
     private static final int CORE = 4;
+
+    private static ExecutorService executorService = Executors.newFixedThreadPool(CORE);
 
     public static synchronized void increment() {
         count++;
@@ -84,45 +88,55 @@ public class Worker {
         * */
 //        wordsInText = countWithThreads(results);
         createThreadPool(results);
+        executorService.shutdown();
         results.clear();
     }
 
+    public static class SplitWorker implements Callable<Integer> {
 
-    public static void createThreadPool(List<String> list) {
-        ExecutorService executorService = Executors.newFixedThreadPool(CORE);
+        private List<String> splitWorkList;
+        private int id;
 
-        int size = (int) Math.ceil(list.size() / CORE);
-        for (int start = 0; start < list.size(); start += size) {
-            int end = Math.min(start + size, list.size());
-            subList = list.subList(start, end);
+        SplitWorker(List<String> list, int id){
+            this.splitWorkList = list;
+            this.id = id;
         }
 
-        List<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
-        futureResults.add(executorService.submit(new Callable<Integer>() {
-            @Override
-            public Integer call() throws Exception {
-                int count = 0;
-                for (int i = 0; i < subList.size(); i++) {
-                    for (String element : subList.get(i).split(" ")) {
+        @Override
+        public Integer call() throws Exception {
+            int count = 0;
+            for (int i = id * SIZE / CORE; i < (id + 1) * SIZE / CORE; i++) {
+                if(splitWorkList.get(i) != null){
+                    for (String element : splitWorkList.get(i).split(" ")) {
                         if (element.equalsIgnoreCase(findWord)) {
                             count++;
                         }
                     }
+                } else {
+                    return 0;
                 }
-                return count;
+
             }
-        }));
+            return count;
+        }
+    }
 
-        executorService.shutdown();
+    public static void createThreadPool(List<String> list) {
 
-        for (Future<Integer> result : futureResults)
+        List<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
+
+        for (int i = 0; i < CORE; i++) {
+            futureResults.add(executorService.submit(new SplitWorker(list, i)));
+        }
+
+        for (Future<Integer> result : futureResults){
             try {
                 wordsInText += result.get();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
+            } catch (ExecutionException | InterruptedException e) {
                 e.printStackTrace();
             }
+        }
+
     }
 
 

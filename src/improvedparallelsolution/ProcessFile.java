@@ -20,11 +20,10 @@ public class ProcessFile {
     private static List<String> results = new ArrayList<String>();
     private static volatile int count = 0;
 
-    private static final int SIZE = 12000;
+    private static final int SIZE = 20;
     private static final int CORE = 4;
 
-    private static BlockingQueue<List<String>> inp = new ArrayBlockingQueue<>(15);
-    private static BlockingQueue<List<String>> out = new ArrayBlockingQueue<>(15);
+    private static BlockingQueue<List<String>> arrayBlockingQueueInput = new ArrayBlockingQueue<>(15);
 
     private static ExecutorService executorService = Executors.newFixedThreadPool(CORE);
 
@@ -35,7 +34,7 @@ public class ProcessFile {
 
         System.out.println("Starting...");
         long startTime = System.currentTimeMillis();
-        processFile("src/text.txt");
+        processFile("src/testText.txt");
 
         long stopTime = System.currentTimeMillis();
 
@@ -72,7 +71,9 @@ public class ProcessFile {
             if (results.size() <= SIZE) {
                 results.add(textLine);
                 if (results.size() == SIZE) {
-                    createThreadPool(results);
+                    fillBlockingQueue(results);
+//                    createThreadPool(results);
+                    workBlockingQueue(arrayBlockingQueueInput);
                     results.clear();
                 }
             }
@@ -83,55 +84,58 @@ public class ProcessFile {
         while(results.size() != SIZE){
             results.add("");
         }
-        createThreadPool(results);
+//        createThreadPool(results);
+        workBlockingQueue(arrayBlockingQueueInput);
         executorService.shutdown();
         results.clear();
     }
 
-    /* SplitWorker class that */
-    public static class Worker implements Callable<Integer> {
+    public static class Consumer implements Runnable{
 
-        private List<String> workerList;
-        private int id;
+        private final BlockingQueue queue;
 
-        Worker(List<String> list, int id){
-            this.workerList = list;
-            this.id = id;
+        public Consumer(BlockingQueue q) {
+            queue = q;
         }
 
         @Override
-        public Integer call() throws Exception {
+        public void run() {
+            try {
+                while (true) {
+                    consume((List<String>) queue.take());
+                }
+            } catch (InterruptedException ex){
+                // Catch ex
+            }
+        }
+
+        void consume(List<String> list){
             int count = 0;
-            for (int i = id * SIZE / CORE; i < (id + 1) * SIZE / CORE; i++) {
-                for (String element : workerList.get(i).split(" ")) {
-                    if (element.equalsIgnoreCase(findWord)) {
+            for (int i = 0; i < list.size(); i++){
+                for (String element : list.get(i).split(" ")){
+                    if (element.equalsIgnoreCase(findWord)){
                         count++;
                     }
                 }
             }
-            return count;
+            wordsInText += count;
+        }
+
+    }
+    /* Adds full lists to arrayBlockingQueue */
+    public static void fillBlockingQueue(List<String> list){
+        try {
+            arrayBlockingQueueInput.put(list);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
-    public static void createBlockingQueue(List<String> list){
-
-    }
-
-    public static void createThreadPool(List<String> list) {
-        List<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
-
-        /* Create CORE-amount of running threads in the Threadpool */
-        for (int i = 0; i < CORE; i++) {
-            futureResults.add(executorService.submit(new Worker(list, i)));
-        }
-
-        /* Get the result of the running threads */
-        for (Future<Integer> result : futureResults){
-            try {
-                wordsInText += result.get();
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
+    public static void workBlockingQueue(BlockingQueue blockingQueue){
+//        List<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
+        Consumer consumer = new Consumer(blockingQueue);
+        for (int i = 0; i < CORE; i++){
+            executorService.execute(consumer);
         }
     }
 

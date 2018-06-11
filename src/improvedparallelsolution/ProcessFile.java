@@ -23,6 +23,9 @@ public class ProcessFile {
     private static final int SIZE = 12000;
     private static final int CORE = 4;
 
+    private static BlockingQueue<List<String>> inp = new ArrayBlockingQueue<>(15);
+    private static BlockingQueue<List<String>> out = new ArrayBlockingQueue<>(15);
+
     private static ExecutorService executorService = Executors.newFixedThreadPool(CORE);
 
     public void main() throws IOException {
@@ -108,6 +111,10 @@ public class ProcessFile {
             }
             return count;
         }
+    }
+
+    public static void createBlockingQueue(List<String> list){
+
     }
 
     public static void createThreadPool(List<String> list) {

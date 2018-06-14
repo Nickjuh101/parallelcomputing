@@ -27,6 +27,8 @@ public class ProcessFile {
 
     private static ExecutorService executorService = Executors.newFixedThreadPool(CORE);
 
+    private static boolean producerIsRunning = true;
+
     public void main() throws IOException {
         System.out.println("Enter the word you want to find: ");
         Scanner scan = new Scanner(System.in);
@@ -72,8 +74,10 @@ public class ProcessFile {
                 results.add(textLine);
                 if (results.size() == SIZE) {
                     new Thread(new Producer(arrayBlockingQueueInput, results)).start();
-
-                    workBlockingQueue(arrayBlockingQueueInput);
+                    if (arrayBlockingQueueInput.isEmpty() == false){
+                        workBlockingQueue(arrayBlockingQueueInput);
+                    } else {
+                    }
                     results.clear();
                 }
             }
@@ -84,6 +88,8 @@ public class ProcessFile {
         while(results.size() != SIZE){
             results.add("");
         }
+        new Thread(new Producer(arrayBlockingQueueInput, results)).start();
+
         workBlockingQueue(arrayBlockingQueueInput);
         executorService.shutdown();
         results.clear();
@@ -103,6 +109,7 @@ public class ProcessFile {
             try {
                 queue.put(producerList);
             } catch (InterruptedException e) {
+                producerIsRunning = false;
                 e.printStackTrace();
             }
         }
@@ -119,24 +126,27 @@ public class ProcessFile {
 
         @Override
         public Integer call() throws Exception {
-            List<String> list = new ArrayList<>();
-            list = queue.take();
-            int count = 0;
-            for (int i = 0; i < list.size(); i++){
-                for (String element : list.get(i).split(" ")){
-                    if (element.equalsIgnoreCase(findWord)){
-                        count++;
+            if (producerIsRunning == false && queue.isEmpty()){
+                return 0;
+            } else{
+                List<String> list = new ArrayList<>();
+                list = queue.take();
+                int count = 0;
+                for (int i = 0; i < list.size(); i++){
+                    for (String element : list.get(i).split(" ")){
+                        if (element.equalsIgnoreCase(findWord)){
+                            count++;
+                        }
                     }
                 }
+                return count;
             }
-            return count;
         }
     }
-    /* Adds full lists to arrayBlockingQueue */
-
 
     public static void workBlockingQueue(BlockingQueue blockingQueue){
         List<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
+
         for (int i = 0; i < CORE; i++){
             futureResults.add(executorService.submit(new Consumer(blockingQueue)));
         }

@@ -71,8 +71,8 @@ public class ProcessFile {
             if (results.size() <= SIZE) {
                 results.add(textLine);
                 if (results.size() == SIZE) {
-                    fillBlockingQueue(results);
-//                    createThreadPool(results);
+                    new Thread(new Producer(arrayBlockingQueueInput, results)).start();
+
                     workBlockingQueue(arrayBlockingQueueInput);
                     results.clear();
                 }
@@ -84,32 +84,43 @@ public class ProcessFile {
         while(results.size() != SIZE){
             results.add("");
         }
-//        createThreadPool(results);
         workBlockingQueue(arrayBlockingQueueInput);
         executorService.shutdown();
         results.clear();
     }
 
-    public static class Consumer implements Runnable{
+    public static class Producer implements Runnable{
 
-        private final BlockingQueue queue;
+        private final BlockingQueue<List<String>> queue;
+        private List<String> producerList;
 
-        public Consumer(BlockingQueue q) {
-            queue = q;
+        public Producer(BlockingQueue<List<String>> queue, List<String> list) {
+            this.queue = queue;
+            this.producerList = list;
         }
-
         @Override
         public void run() {
             try {
-                while (true) {
-                    consume((List<String>) queue.take());
-                }
-            } catch (InterruptedException ex){
-                // Catch ex
+                queue.put(producerList);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
+    }
 
-        void consume(List<String> list){
+
+    public static class Consumer implements Callable<Integer>{
+
+        private final BlockingQueue<List<String>> queue;
+
+        public Consumer(BlockingQueue q) {
+            this.queue = q;
+        }
+
+        @Override
+        public Integer call() throws Exception {
+            List<String> list = new ArrayList<>();
+            list = queue.take();
             int count = 0;
             for (int i = 0; i < list.size(); i++){
                 for (String element : list.get(i).split(" ")){
@@ -118,24 +129,24 @@ public class ProcessFile {
                     }
                 }
             }
-            wordsInText += count;
+            return count;
         }
-
     }
     /* Adds full lists to arrayBlockingQueue */
-    public static void fillBlockingQueue(List<String> list){
-        try {
-            arrayBlockingQueueInput.put(list);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
+
 
     public static void workBlockingQueue(BlockingQueue blockingQueue){
-//        List<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
-        Consumer consumer = new Consumer(blockingQueue);
+        List<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
         for (int i = 0; i < CORE; i++){
-            executorService.execute(consumer);
+            futureResults.add(executorService.submit(new Consumer(blockingQueue)));
+        }
+
+        for (Future<Integer> result : futureResults){
+            try {
+                wordsInText += result.get();
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 

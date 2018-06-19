@@ -1,7 +1,5 @@
 package serialsolution;
 
-import org.apache.commons.lang.time.StopWatch;
-
 import java.io.*;
 import java.util.Scanner;
 
@@ -16,7 +14,6 @@ public class Main {
     private static String text;
 
     public static void main(String[] args) throws IOException {
-//        Scanner scan = new Scanner(new File("src/text.txt"));
         Scanner findword = new Scanner(System.in);
 
         FileReader file = new FileReader("src/text.txt");

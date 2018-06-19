@@ -1,7 +1,6 @@
 package improvedparallelsolution;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,21 +21,19 @@ public class ProcessFile {
 
     private static final int BLOCKINGQUEUESIZE = 15;
 
-    private static final int SIZE = 20;
+    private static final int SIZE = 12000;
     private static final int CORE = 4;
 
     private static final String HALT = "HALT";
 
     private static BlockingQueue<List<String>> arrayBlockingQueueInput = new ArrayBlockingQueue<>(BLOCKINGQUEUESIZE);
 
-    private static boolean producerIsRunning = true;
-
     public static class Producer implements Runnable {
 
         @Override
         public void run() {
             try {
-                FileReader file = new FileReader("src/testText.txt");
+                FileReader file = new FileReader("src/text.txt");
                 BufferedReader br = new BufferedReader(file);
 
                 while ((textLine = br.readLine()) != null) {
@@ -96,7 +93,7 @@ public class ProcessFile {
             List<String> list = new ArrayList<>();
             do {
                 list = arrayBlockingQueueInput.take();
-                if (!list.get(0).equals(HALT)){
+                if (!list.get(0).equals(HALT)) {
                     for (int i = 0; i < list.size(); i++) {
                         for (String element : list.get(i).split(" ")) {
                             if (element.equalsIgnoreCase(findWord)) {

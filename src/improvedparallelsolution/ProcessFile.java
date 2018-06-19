@@ -62,14 +62,8 @@ public class ProcessFile {
                     if (results.size() <= SIZE) {
                         results.add(textLine);
                         if (results.size() == SIZE) {
-                            if (arrayBlockingQueueInput.size() == 14){
-                                List<String> list = new ArrayList<String>();
-                                list.add(HALT);
-                                arrayBlockingQueueInput.put(list);
-                            } else{
-                                arrayBlockingQueueInput.put(new ArrayList<String>(results));
-                                results.clear();
-                            }
+                            arrayBlockingQueueInput.put(new ArrayList<String>(results));
+                            results.clear();
                         }
                     }
                 }
@@ -100,9 +94,9 @@ public class ProcessFile {
         @Override
         public Integer call() throws Exception {
             List<String> list = new ArrayList<>();
-            list = arrayBlockingQueueInput.take();
             do {
-                if (list.get(0) != "HALT" && !list.isEmpty()){
+                list = arrayBlockingQueueInput.take();
+                if (!list.get(0).equals(HALT)){
                     for (int i = 0; i < list.size(); i++) {
                         for (String element : list.get(i).split(" ")) {
                             if (element.equalsIgnoreCase(findWord)) {
@@ -113,7 +107,7 @@ public class ProcessFile {
                 } else {
                     arrayBlockingQueueInput.put(list);
                 }
-            } while (list.get(0) != "HALT");
+            } while (!list.get(0).equals(HALT));
             return count;
         }
     }

@@ -25,6 +25,8 @@ public class ProcessFile {
     private static final int SIZE = 20;
     private static final int CORE = 4;
 
+    private static final String HALT = "HALT";
+
     private static BlockingQueue<List<String>> arrayBlockingQueueInput = new ArrayBlockingQueue<>(BLOCKINGQUEUESIZE);
 
     private static boolean producerIsRunning = true;
@@ -60,12 +62,14 @@ public class ProcessFile {
                     if (results.size() <= SIZE) {
                         results.add(textLine);
                         if (results.size() == SIZE) {
-                            arrayBlockingQueueInput.put(results);
-                            if (arrayBlockingQueueInput.size() == BLOCKINGQUEUESIZE-1){
+                            if (arrayBlockingQueueInput.size() == 14){
                                 List<String> list = new ArrayList<String>();
+                                list.add(HALT);
                                 arrayBlockingQueueInput.put(list);
+                            } else{
+                                arrayBlockingQueueInput.put(new ArrayList<String>(results));
+                                results.clear();
                             }
-                            results.clear();
                         }
                     }
                 }
@@ -75,12 +79,12 @@ public class ProcessFile {
                 while (results.size() != SIZE) {
                     results.add("");
                 }
-                arrayBlockingQueueInput.put(results);
+                arrayBlockingQueueInput.put(new ArrayList<String>(results));
                 List<String> list = new ArrayList<String>();
+                list.add(HALT);
                 arrayBlockingQueueInput.put(list);
                 results.clear();
             } catch (InterruptedException e) {
-                producerIsRunning = false;
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -96,10 +100,9 @@ public class ProcessFile {
         @Override
         public Integer call() throws Exception {
             List<String> list = new ArrayList<>();
-
+            list = arrayBlockingQueueInput.take();
             do {
-                list = arrayBlockingQueueInput.take();
-                if (!list.isEmpty()){
+                if (list.get(0) != "HALT" && !list.isEmpty()){
                     for (int i = 0; i < list.size(); i++) {
                         for (String element : list.get(i).split(" ")) {
                             if (element.equalsIgnoreCase(findWord)) {
@@ -110,7 +113,7 @@ public class ProcessFile {
                 } else {
                     arrayBlockingQueueInput.put(list);
                 }
-            } while (!list.isEmpty());
+            } while (list.get(0) != "HALT");
             return count;
         }
     }
@@ -123,8 +126,9 @@ public class ProcessFile {
         System.out.println("Starting...");
         long startTime = System.currentTimeMillis();
         Thread producer = new Thread(new Producer());
-        ExecutorService executorService = Executors.newFixedThreadPool(CORE);
         producer.start();
+        ExecutorService executorService = Executors.newFixedThreadPool(CORE);
+
         List<Future<Integer>> futureResults = new ArrayList<Future<Integer>>();
 
         for (int i = 0; i < CORE; i++) {

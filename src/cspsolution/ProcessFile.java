@@ -3,11 +3,16 @@ package cspsolution;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.Serializable;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.*;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.broker.BrokerFactory;
+import org.apache.activemq.broker.BrokerService;
+import org.apache.activemq.command.ActiveMQQueue;
 
 import javax.jms.*;
 
@@ -63,19 +68,24 @@ public class ProcessFile {
                         results.add(textLine);
                         if (results.size() == SIZE) {
 
-                            ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("vm://localhost");
+                            ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost/61616");
+                            Destination destination = new ActiveMQQueue("SomeQueue");
                             Connection connection = connectionFactory.createConnection();
-                            connection.start();
-
                             Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-                            Destination destination = session.createQueue("Test.FOO");
+                            try{
+                                ObjectMessage objectMessage = session.createObjectMessage((Serializable) results);
+                                MessageProducer producer = session.createProducer(destination);
 
-                            MessageProducer producer = session.createProducer(destination);
-                            producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
-
-                            arrayBlockingQueueInput.put(new ArrayList<String>(results));
-                            results.clear();
+                                producer.send(objectMessage);
+                                session.close();
+                                results.clear();
+                            } finally {
+                                if (connection != null){
+                                    connection.close();
+                                    results.clear();
+                                }
+                            }
                         }
                     }
                 }
@@ -107,21 +117,44 @@ public class ProcessFile {
 
         @Override
         public Integer call() throws Exception {
-            List<String> list = new ArrayList<>();
-            do {
-                list = arrayBlockingQueueInput.take();
-                if (!list.get(0).equals(HALT)) {
-                    for (int i = 0; i < list.size(); i++) {
-                        for (String element : list.get(i).split(" ")) {
-                            if (element.equalsIgnoreCase(findWord)) {
-                                count++;
+
+            try {
+                ConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost/61616");
+                Destination destination = new ActiveMQQueue("SomeQueue");
+                Connection connection = connectionFactory.createConnection();
+                Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+                try{
+                    MessageConsumer consumer = session.createConsumer(destination);
+                    connection.start();
+                    ObjectMessage objectMessage = (ObjectMessage) consumer.receive();
+                    if (objectMessage instanceof List){
+                        List<String> list = new ArrayList<>();
+                        do {
+                            list = (List<String>) objectMessage;
+                            if (!list.get(0).equals(HALT)) {
+                                for (int i = 0; i < list.size(); i++) {
+                                    for (String element : list.get(i).split(" ")) {
+                                        if (element.equalsIgnoreCase(findWord)) {
+                                            count++;
+                                            session.close();
+                                        }
+                                    }
+                                }
+                            } else {
+
                             }
-                        }
+                        } while (!list.get(0).equals(HALT));
+                        return count;
                     }
-                } else {
-                    arrayBlockingQueueInput.put(list);
+                } finally {
+                    if (connection != null){
+                        connection.close();
+                    }
                 }
-            } while (!list.get(0).equals(HALT));
+                } catch (JMSException e) {
+                e.printStackTrace();
+            }
             return count;
         }
     }

@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.*;
+import org.apache.activemq.ActiveMQConnectionFactory;
+
+import javax.jms.*;
 
 
 /**
@@ -59,6 +62,18 @@ public class ProcessFile {
                     if (results.size() <= SIZE) {
                         results.add(textLine);
                         if (results.size() == SIZE) {
+
+                            ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("vm://localhost");
+                            Connection connection = connectionFactory.createConnection();
+                            connection.start();
+
+                            Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+                            Destination destination = session.createQueue("Test.FOO");
+
+                            MessageProducer producer = session.createProducer(destination);
+                            producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+
                             arrayBlockingQueueInput.put(new ArrayList<String>(results));
                             results.clear();
                         }
@@ -78,6 +93,8 @@ public class ProcessFile {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JMSException e) {
                 e.printStackTrace();
             }
         }

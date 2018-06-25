@@ -37,6 +37,9 @@ cmake-build-debug/
 # IntelliJ
 /out/
 
+#ActiveMQ
+/activemq-data/
+
 # mpeltonen/sbt-idea plugin
 .idea_modules/
 

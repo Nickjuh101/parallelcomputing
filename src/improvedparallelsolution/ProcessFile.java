@@ -22,7 +22,7 @@ public class ProcessFile {
     private static final int BLOCKINGQUEUESIZE = 15;
 
     private static final int SIZE = 12000;
-    private static final int CORE = 4;
+    private static final int CORE = 2;
 
     private static final String HALT = "HALT";
 

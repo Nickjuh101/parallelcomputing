@@ -3,7 +3,6 @@ package cspsolution;
 /**
  * Created by Nick on 0011 11 juni 2018.
  */
-import improvedparallelsolution.ProcessFile;
 
 import java.io.IOException;
 
